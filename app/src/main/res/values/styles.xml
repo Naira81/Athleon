@@ -1,0 +1,30 @@
+<resources>
+    <!-- Define tu estilo de vista personalizada -->
+    <style name="viewCustom">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+
+    <style name="NumberPickerTheme" parent="Theme.AppCompat.Light">
+        <item name="colorAccent">@color/white</item>
+        <item name="colorControlNormal">@android:color/transparent</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:background">@color/gray_dark</item>
+        <item name="android:textSize">30sp</item>
+    </style>
+
+    <!-- Estilo para el título de la Toolbar -->
+    <style name="Toolbar.TitleText">
+        <item name="android:textColor">#FFFFFF</item> <!-- Cambia el color según tu necesidad -->
+        <item name="android:textSize">20sp</item> <!-- Cambia el tamaño de texto según tu necesidad -->
+        <item name="android:fontFamily">sans-serif</item> <!-- Cambia la fuente si es necesario -->
+    </style>
+
+    <!-- Estilo para el Toolbar -->
+    <style name="Toolbar" parent="Widget.AppCompat.Toolbar">
+        <item name="android:background">?attr/colorPrimary</item> <!-- Fondo del Toolbar -->
+        <item name="android:titleTextStyle">@style/Toolbar.TitleText</item> <!-- Estilo del texto del título -->
+    </style>
+</resources>
+

@@ -1,0 +1,100 @@
+<resources>
+    <string name="app_name">Athleon</string>
+
+    <string name="email">Email</string>
+    <string name="password">Contraseña</string>
+    <string name="forgotPassword">Olvidastes tu contraseña</string>
+    <string name="login">Iniciar sesion</string>
+    <string name="resetPassword">Enviar contraseña</string>
+    <string name="invitation">¿Hasta donde quieres llegar?</string>
+    <string name="acept">He leido y acepto los</string>
+    <string name="terms">terminos y condiciones de uso</string>
+    <string name="empty_email">Introduce un email</string>
+    <string name="invalid_email">Te has equivocado en el email</string>
+    <string name="gogle">GOOGLE</string>
+    <string name="facebook">FACEBOOK</string>
+
+    <string name="facebook_app_id">893970042287463</string>
+    <string name="fb_login_protocol_scheme">fb893970042287463</string>
+    <string name="facebook_client_token">e34bf03744be780ac96b53f6a34247a0</string>
+
+
+    <string name="bar_title_terms">Terminos y Condiciones de uso</string>
+    <string name="terms1">Terminos y Condiciones de uso 1</string>
+    <string name="terms2">Terminos y Condiciones de uso 2</string>
+    <string name="terms3">Terminos y Condiciones de uso 3</string>
+
+    <string name="bar_title">Athleon a tope de Power</string>
+    <string name="menu_running">Running</string>
+    <string name="menu_record">Historial</string>
+    <string name="menu_becamepremium">Hazte Premium</string>
+    <string name="menu_clearpreferences">Restablecer ajustes</string>
+    <string name="menu_signout">Cerrar sesion</string>
+    <string name="menu_publicidad">Tu anuncio aqui</string>
+
+    <string name="level">Nivel</string>
+    <string name="nav_hi">Quien mueve las piernas mueve el corazon. ¡Muevete corazon!</string>
+    <string name="user">blabla@athleonrunning.com</string>
+
+
+    <string name="navigation_drawer_open">Open</string>
+    <string name="navigation_drawer_close">Close</string>
+
+    <string name="bar_title_record">Historial molon</string>
+
+
+
+    <string name="orderby_dateZA">Fecha (Recientes primero)</string>
+    <string name="orderby_durationZA">Duracion (mayores primero)</string>
+    <string name="orderby_distanceZA">Distancia (mayores primero)</string>
+    <string name="orderby_avgspeedZA">Velocidad Promedio (mayores primero)</string>
+    <string name="orderby_maxspeedZA">Velocidad Maxima (mayores primero)</string>
+
+    <string name="orderby_dateAZ">Fecha (Antiguos primero)</string>
+    <string name="orderby_durationAZ">Duracion (menores primero)</string>
+    <string name="orderby_distanceAZ">Distancia (menores primero)</string>
+    <string name="orderby_avgspeedAZ">Velocidad Promedio (menores primero)</string>
+    <string name="orderby_maxspeedAZ">Velocidad Maxima (menores primero)</string>
+
+
+    <string name="start">VAVAVA</string>
+    <string name="stop">QUIETO PARADO</string>
+    <string name="finish">Finalizar</string>
+    <string name="rounds">Round 1</string>
+    <string name="time_running">Running time</string>
+    <string name="time_walking">Walking Time</string>
+    <string name="walking_clock">00:00</string>
+    <string name="init_stop_watch_value">00:00:00</string>
+
+
+
+
+    <string name="hard_volumen">Volumen de Musica Cañera</string>
+    <string name="soft_volumen">Volumen de Musica Tranquila</string>
+    <string name="notification_volumen">Volumen de notificaciones</string>
+    <string name="hard_position">00:00:00</string>
+    <string name="hard_duration">01:00:00</string>
+    <string name="soft_position">00:00:00</string>
+    <string name="soft_duration">01:00:00</string>
+
+
+    <string name="medalDistanceDescription">00:00:00</string>
+    <string name="medalAvgSpeedDescription">01:00:00</string>
+    <string name="textNull">01:00:00</string>
+    <string name="PopUpDurationTitle">01:00:00</string>
+    <string name="PopUpChallengeTitle">01:00:00</string>
+    <string name="PopUpIntervalTitle">01:00:00</string>
+    <string name="PopUpDistanceTitle">01:00:00</string>
+    <string name="PopUpUnevennessTitle">01:00:00</string>
+    <string name="PopUpAvgSpeedTitle">01:00:00</string>
+    <string name="PopUpMaxSpeedTitle">01:00:00</string>
+
+
+
+
+
+
+
+
+
+</resources>
