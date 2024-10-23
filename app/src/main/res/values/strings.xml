@@ -78,16 +78,26 @@
     <string name="soft_duration">01:00:00</string>
 
 
-    <string name="medalDistanceDescription">00:00:00</string>
-    <string name="medalAvgSpeedDescription">01:00:00</string>
-    <string name="textNull">01:00:00</string>
-    <string name="PopUpDurationTitle">01:00:00</string>
-    <string name="PopUpChallengeTitle">01:00:00</string>
-    <string name="PopUpIntervalTitle">01:00:00</string>
-    <string name="PopUpDistanceTitle">01:00:00</string>
-    <string name="PopUpUnevennessTitle">01:00:00</string>
-    <string name="PopUpAvgSpeedTitle">01:00:00</string>
-    <string name="PopUpMaxSpeedTitle">01:00:00</string>
+
+    <string name="PopUpTotalRuns">Carrera: </string>
+    <string name="PopUpTotalDistance">Kms acumulados: </string>
+    <string name="PopUpTotalTime">Total time: </string>
+    <string name="NoDataWarning">No hay datos registrados. Recuerda activar el GPS si deseas información de tu carrera</string>
+
+    <string name="PopUpDurationTitle">DURACION</string>
+    <string name="PopUpChallengeTitle">OBJETIVO</string>
+    <string name="PopUpIntervalTitle">INTERVALOS</string>
+    <string name="PopUpDistanceTitle">DISTANCIA</string>
+    <string name="PopUpAvgSpeedTitle">VELOCIDAD PROMEDIO</string>
+    <string name="PopUpMaxSpeedTitle">VELOCIDAD MÁXIMA</string>
+    <string name="PopUpUnevennessTitle">DESNIVEL</string>
+
+    <string name="textNull"></string>
+    <string name="textNoData">-</string>
+
+    <string name="medalDistanceDescription">Distancia [Record Personal]</string>
+    <string name="medalAvgSpeedDescription">Vel. Máx. [Record Personal]</string>
+    <string name="medalMaxSpeedDescription">Vel. Prom. [Record Personal]</string>
 
 
 
