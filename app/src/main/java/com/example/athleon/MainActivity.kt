@@ -33,6 +33,23 @@ import me.tankery.lib.circularseekbar.CircularSeekBar
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private lateinit var drawer:DrawerLayout
+//distancia
+    private lateinit var csbChallengeDistance:CircularSeekBar
+    private lateinit var csbCurrentDistance:CircularSeekBar
+    private lateinit var csbRecordDistance:CircularSeekBar
+//velocidad media
+    private lateinit var csbCurrentAvgSpeed:CircularSeekBar
+    private lateinit var csbRecordAvgSpeed:CircularSeekBar
+//velocidad actual
+    private lateinit var csbCurrentSpeed:CircularSeekBar
+    private lateinit var csbCurrentMaxSpeed:CircularSeekBar
+   private lateinit var csbRecordSpeed:CircularSeekBar
+
+   //Records
+   private lateinit var tvDistanceRecord:TextView
+   private lateinit var tvAvgSpeedRecord:TextView
+    private lateinit var tvMaxSpeedRecord:TextView
+
 
     private lateinit var swIntervalMode:Switch
     private lateinit var swChallenges:Switch
@@ -49,14 +66,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var tvChrono:TextView
 
+    private lateinit var npDurationInterval: NumberPicker
+    private lateinit var tvRunningTime: TextView
+    private lateinit var tvWalkingTime:TextView
     private lateinit var csbRunWalk: CircularSeekBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        initToolBar()
         initObjects()
+        initToolBar()
         initNavigationView()
     }
 
@@ -89,13 +109,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun initStopWatch(){
         tvChrono.text= getString(R.string.init_stop_watch_value)
     }
-//funcion para inicializar objetos
-    private fun initObjects(){
+
+    private fun initChrono(){
         tvChrono= findViewById(R.id.tvChrono)
         tvChrono.setTextColor(ContextCompat.getColor(this, R.color.white))
         initStopWatch()
 
-
+    }
+//se encarga de mostrar y ocultar Layouts
+    private fun hideLayouts(){
         var lyMap=findViewById<LinearLayout>(R.id.lyMap)
         var lyFragmentMap=findViewById<LinearLayout>(R.id.lyFragmentMap)
         setHeightLinearLayout(lyMap, 0)
@@ -123,43 +145,93 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         lyChallenges.translationY= -300f
         lySettingsVolumes.translationY= -300f
 
-        swIntervalMode =findViewById<Switch>(R.id.swIntervalMode)
-        swChallenges= findViewById<Switch>(R.id.swChallenges)
-        swVolumes= findViewById(R.id.swVolumes)
+    }
 
+    private fun initMetrics(){
+        csbCurrentDistance= findViewById(R.id.csbCurrentDistance)
+        csbChallengeDistance= findViewById(R.id.csbChallengeDistance)
+        csbRecordDistance= findViewById(R.id.csbRecordDistance)
+
+        csbCurrentAvgSpeed= findViewById(R.id.csbCurrentAvgSpeed)
+        csbRecordAvgSpeed= findViewById(R.id.csbRecordAvgSpeed)
+
+
+        csbCurrentSpeed= findViewById(R.id.csbCurrentSpeed)
+        csbCurrentMaxSpeed= findViewById(R.id.csbCurrentMaxSpeed)
+        csbRecordSpeed= findViewById(R.id.csbRecordSpeed)
+
+        csbCurrentDistance.progress=0f
+        csbChallengeDistance.progress=0f
+        csbCurrentAvgSpeed.progress=0f
+        csbCurrentSpeed.progress=0f
+        csbCurrentMaxSpeed.progress=0f
+
+        tvDistanceRecord= findViewById(R.id.tvDistanceRecord)
+        tvAvgSpeedRecord=findViewById(R.id.tvAvgSpeedRecord)
+        tvMaxSpeedRecord= findViewById(R.id.tvMaxSpeedRecord)
+
+        tvDistanceRecord.text=""
+        tvAvgSpeedRecord.text=""
+        tvMaxSpeedRecord.text=""
+
+    }
+//asginar valores a la variables para controloar los Switch
+    private fun initSwitchs(){
+    swIntervalMode =findViewById<Switch>(R.id.swIntervalMode)
+    swChallenges= findViewById<Switch>(R.id.swChallenges)
+    swVolumes= findViewById(R.id.swVolumes)
+
+    }
+
+    private fun initIntervalMode(){
+        npDurationInterval=findViewById(R.id.npDurationInterval)
+        tvRunningTime=findViewById(R.id.tvRunningTime)
+        tvWalkingTime=findViewById(R.id.tvWalkingTime)
         csbRunWalk = findViewById(R.id.csbRunWalk)
 
+        csbRunWalk.setOnSeekBarChangeListener(object : CircularSeekBar.OnCircularSeekBarChangeListener {
+            override fun onProgressChanged(circularSeekBar: CircularSeekBar,progress: Float,fromUser: Boolean) {
+                //algoritmo que hace q solo avance de 15 en 15
+                var STEPS_UX: Int = 15
+                var set: Int = 0
+                var p = progress.toInt()
+
+                if (p%STEPS_UX != 0){
+                    while (p >= 60) p -= 60
+                    while (p >= STEPS_UX) p -= STEPS_UX
+                    if (STEPS_UX-p > STEPS_UX/2) set = -1 * p
+                    else set = STEPS_UX-p
+
+                    csbRunWalk.progress = csbRunWalk.progress + set
+                }
+            }
+
+            override fun onStopTrackingTouch(seekBar: CircularSeekBar) {
+            }
+
+            override fun onStartTrackingTouch(seekBar: CircularSeekBar) {
+            }
+        })
+
+    }
+
+    private fun initChallengeMode(){
         npChallengeDistance= findViewById<NumberPicker>(R.id.npChallengeDistance)
         npChallengeDurationHH= findViewById<NumberPicker>(R.id.npChallengeDurationHH)
         npChallengeDurationMM= findViewById<NumberPicker>(R.id.npChallengeDurationMM)
         npChallengeDurationSS= findViewById<NumberPicker>(R.id.npChallengeDurationSS)
 
-    csbRunWalk.setOnSeekBarChangeListener(object : CircularSeekBar.OnCircularSeekBarChangeListener {
-        override fun onProgressChanged(circularSeekBar: CircularSeekBar,progress: Float,fromUser: Boolean) {
-//algoritmo que hace q solo avance de 15 en 15
-            var STEPS_UX: Int = 15
-            var set: Int = 0
-            var p = progress.toInt()
 
-            if (p%STEPS_UX != 0){
-                while (p >= 60) p -= 60
-                while (p >= STEPS_UX) p -= STEPS_UX
-                if (STEPS_UX-p > STEPS_UX/2) set = -1 * p
-                else set = STEPS_UX-p
+    }
+    //funcion para inicializar objetos
+    private fun initObjects(){
 
-                csbRunWalk.progress = csbRunWalk.progress + set
-            }
-        }
-
-        override fun onStopTrackingTouch(seekBar: CircularSeekBar) {
-        }
-
-        override fun onStartTrackingTouch(seekBar: CircularSeekBar) {
-        }
-    })
-
-
-
+        initChrono()
+        hideLayouts()
+        initMetrics()
+        initSwitchs()
+        initIntervalMode()
+        initChallengeMode()
     }
 
     fun callSignPut(view:View){
