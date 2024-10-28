@@ -454,7 +454,7 @@
                             android:translationY="-300dp"
                             android:gravity="left"
                             android:orientation="vertical">
-                            <!--
+
                             <fragment
                                 android:id="@+id/fragmentMap"
                                 android:name="com.google.android.gms.maps.SupportMapFragment"
@@ -468,7 +468,7 @@
                                 map:uiTiltGestures="true"
                                 map:uiZoomControls="true"
                                 map:uiZoomGestures="true"/>
-                            -->
+
 
                             <TextView
                                 android:id="@+id/tvMapCenter"
@@ -481,7 +481,7 @@
                                 android:paddingLeft="20dp"
                                 android:paddingTop="15dp"
                                 android:drawablePadding="10dp"
-                                android:drawableStart="@drawable/map_icon"
+                                android:drawableStart="@drawable/centermap_icon"
                                 android:paddingRight="20dp"
                                 android:layout_marginLeft="5dp"
                                 android:translationY="-57dp"
@@ -495,7 +495,7 @@
                                 android:layout_marginRight="5dp"
                                 android:layout_gravity="end"
                                 android:layout_marginTop="-470dp"
-                                android:src="@drawable/map_icon"
+                                android:src="@drawable/map_type_normal"
                                 android:translationZ="10dp"
                                 android:onClick="changeTypeMap"/>
                         </LinearLayout>
