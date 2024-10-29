@@ -1,6 +1,5 @@
 package com.example.athleon
 
-import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -20,7 +19,6 @@ import android.widget.NumberPicker
 import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -41,13 +39,39 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.NonCancellable.start
 import me.tankery.lib.circularseekbar.CircularSeekBar
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.location.Location
+import android.widget.CheckBox
 import android.widget.ImageView
+import android.widget.Toast
 import com.example.athleon.Constants.INTERVAL_LOCATION
+import com.example.athleon.Constants.LIMIT_DISTANCE_ACCEPTED_BIKE
+import com.example.athleon.Constants.LIMIT_DISTANCE_ACCEPTED_ROLLERSKATE
+import com.example.athleon.Constants.LIMIT_DISTANCE_ACCEPTED_RUNNING
+import com.example.athleon.Constants.key_challengeAutofinish
+import com.example.athleon.Constants.key_challengeDistance
+import com.example.athleon.Constants.key_challengeDurationHH
+import com.example.athleon.Constants.key_challengeDurationMM
+import com.example.athleon.Constants.key_challengeDurationSS
+import com.example.athleon.Constants.key_challengeNofify
+import com.example.athleon.Constants.key_hardVol
+import com.example.athleon.Constants.key_intervalDuration
+import com.example.athleon.Constants.key_maxCircularSeekBar
+import com.example.athleon.Constants.key_modeChallenge
+import com.example.athleon.Constants.key_modeChallengeDistance
+import com.example.athleon.Constants.key_modeChallengeDuration
+import com.example.athleon.Constants.key_modeInterval
+import com.example.athleon.Constants.key_notifyVol
+import com.example.athleon.Constants.key_progressCircularSeekBar
+import com.example.athleon.Constants.key_provider
+import com.example.athleon.Constants.key_runningTime
+import com.example.athleon.Constants.key_selectedSport
+import com.example.athleon.Constants.key_softVol
+import com.example.athleon.Constants.key_userApp
+import com.example.athleon.Constants.key_walkingTime
 import com.example.athleon.Utility.roundNumber
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
@@ -57,10 +81,15 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.RoundCap
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
+    OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener,
+    GoogleMap.OnMyLocationClickListener  {
 
     companion object {
+        lateinit var mainContext: Context
 
         val REQUIRED_PERMISSIONS_GPS = arrayOf(
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -68,44 +97,60 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         )
 
     }
-//variables cronometro
-    private var mHandler: Handler? = null//variable usada para actualizar cronometro
+    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var editor: SharedPreferences.Editor
+
+
+    private var mHandler: Handler? = null
     private var mInterval = 1000
     private var timeInSeconds = 0L
     private var rounds: Int = 1
     private var startButtonClicked = false
 
-//varaibles para controlar ancho de la ventana
+
     private var widthScreenPixels: Int = 0
     private var heightScreenPixels: Int = 0
     private var widthAnimations: Int = 0
 
+    private lateinit var drawer: DrawerLayout
 
-    private lateinit var drawer:DrawerLayout
-//distancia
-    private lateinit var csbChallengeDistance:CircularSeekBar
-    private lateinit var csbCurrentDistance:CircularSeekBar
-    private lateinit var csbRecordDistance:CircularSeekBar
-//velocidad media
-    private lateinit var csbCurrentAvgSpeed:CircularSeekBar
-    private lateinit var csbRecordAvgSpeed:CircularSeekBar
-//velocidad actual
-    private lateinit var csbCurrentSpeed:CircularSeekBar
-    private lateinit var csbCurrentMaxSpeed:CircularSeekBar
-   private lateinit var csbRecordSpeed:CircularSeekBar
+    private lateinit var csbChallengeDistance: CircularSeekBar
+    private lateinit var csbCurrentDistance: CircularSeekBar
+    private lateinit var csbRecordDistance: CircularSeekBar
 
-   //Records
-   private lateinit var tvDistanceRecord:TextView
-   private lateinit var tvAvgSpeedRecord:TextView
-    private lateinit var tvMaxSpeedRecord:TextView
+    private lateinit var csbCurrentAvgSpeed: CircularSeekBar
+    private lateinit var csbRecordAvgSpeed: CircularSeekBar
 
-    private lateinit var fbCamara:FloatingActionButton
+    private lateinit var csbCurrentSpeed: CircularSeekBar
+    private lateinit var csbCurrentMaxSpeed: CircularSeekBar
+    private lateinit var csbRecordSpeed: CircularSeekBar
 
+    private lateinit var tvDistanceRecord: TextView
+    private lateinit var tvAvgSpeedRecord: TextView
+    private lateinit var tvMaxSpeedRecord: TextView
 
-    private lateinit var swIntervalMode:Switch
-    private lateinit var swChallenges:Switch
+    private lateinit var tvChrono: TextView
+    private lateinit var fbCamara: FloatingActionButton
 
-    private lateinit var swVolumes:Switch
+    private lateinit var swIntervalMode: Switch
+    private lateinit var npDurationInterval: NumberPicker
+    private lateinit var tvRunningTime: TextView
+    private lateinit var tvWalkingTime: TextView
+    private lateinit var csbRunWalk: CircularSeekBar
+
+    private lateinit var swChallenges: Switch
+
+    private lateinit var npChallengeDistance: NumberPicker
+    private lateinit var npChallengeDurationHH: NumberPicker
+    private lateinit var npChallengeDurationMM: NumberPicker
+    private lateinit var npChallengeDurationSS: NumberPicker
+    private var challengeDistance: Float = 0f
+    private var challengeDuration: Int = 0
+
+    private lateinit var cbNotify: CheckBox
+    private lateinit var cbAutoFinish: CheckBox
+
+    private lateinit var swVolumes: Switch
     private var mpNotify : MediaPlayer? = null
     private var mpHard : MediaPlayer? = null
     private var mpSoft : MediaPlayer? = null
@@ -116,38 +161,24 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var sbHardTrack : SeekBar
     private lateinit var sbSoftTrack : SeekBar
 
+    private var ROUND_INTERVAL = 300
+    private var hardTime : Boolean = true
+    private var TIME_RUNNING: Int = 0
 
+    private var LIMIT_DISTANCE_ACCEPTED: Double = 0.0
+    private lateinit var sportSelected : String
 
+    private lateinit var lyPopupRun: LinearLayout
 
+    private lateinit var map: GoogleMap
+    private var mapCentered = true
+    private lateinit var listPoints: Iterable<LatLng>
 
-    private lateinit var npChallengeDistance: NumberPicker
-    private lateinit var npChallengeDurationHH: NumberPicker
-    private lateinit var npChallengeDurationMM: NumberPicker
-    private lateinit var npChallengeDurationSS: NumberPicker
+    private val PERMISSION_ID = 42
+    private val LOCATION_PERMISSION_REQ_CODE = 1000
 
-
-    private var challengeDistance: Float = 0f
-    private var challengeDuration: Int = 0
-
-    private lateinit var tvChrono:TextView
-
-    private lateinit var npDurationInterval: NumberPicker
-    private lateinit var tvRunningTime: TextView
-    private lateinit var tvWalkingTime:TextView
-    private lateinit var csbRunWalk: CircularSeekBar
-
-    private var ROUND_INTERVAL=300
-    private var TIME_RUNNING:Int=0
-
-    private lateinit var lyPopupRun:LinearLayout
-
-    private lateinit var map:GoogleMap
-    private var mapCentered=true
-
-
-    private var activatedGPS:Boolean=true
+    private var activatedGPS: Boolean = true
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private val PERMISSION_ID=42
     private var flagSavedLocation = false
 
     private var latitude: Double = 0.0
@@ -160,14 +191,34 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var avgSpeed: Double = 0.0
     private var speed: Double = 0.0
 
+    private var minAltitude: Double? = null
+    private var maxAltitude: Double? = null
+    private var minLatitude: Double? = null
+    private var maxLatitude: Double? = null
+    private var minLongitude: Double? = null
+    private var maxLongitude: Double? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        mainContext = this
 
         initObjects()
+
         initToolBar()
         initNavigationView()
         initPermissionsGPS()
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        //super.onBackPressed()
+
+        if (drawer.isDrawerOpen(GravityCompat.START))
+            drawer.closeDrawer(GravityCompat.START)
+        else
+            signOut()
+
     }
 
     private fun initToolBar(){
@@ -196,8 +247,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvUser.text = useremail
     }
 
-    private fun initStopWatch(){
-        tvChrono.text= getString(R.string.init_stop_watch_value)
+    private fun initStopWatch() {
+        tvChrono.text = getString(R.string.init_stop_watch_value)
     }
 
     private fun initChrono(){
@@ -215,108 +266,98 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val lyRoundProgressBg = findViewById<LinearLayout>(R.id.lyRoundProgressBg)
         lyChronoProgressBg.translationX = -widthAnimations.toFloat()
         lyRoundProgressBg.translationX = -widthAnimations.toFloat()
-        //variable administrar textview reset
-        val tvReset: TextView= findViewById(R.id.tvReset)
-        tvReset.setOnClickListener {
-            resetClicked()
-        }
 
-        fbCamara= findViewById(R.id.fbCamera)
-        fbCamara.isVisible=false
+        val tvReset: TextView = findViewById(R.id.tvReset)
+        tvReset.setOnClickListener { resetClicked()  }
 
-
-
+        fbCamara = findViewById(R.id.fbCamera)
+        fbCamara.isVisible = false
     }
-//se encarga de mostrar y ocultar Layouts
+
+    //se encarga de mostrar y ocultar Layouts
     private fun hideLayouts(){
-        var lyMap=findViewById<LinearLayout>(R.id.lyMap)
-        var lyFragmentMap=findViewById<LinearLayout>(R.id.lyFragmentMap)
+        var lyMap = findViewById<LinearLayout>(R.id.lyMap)
+        var lyFragmentMap = findViewById<LinearLayout>(R.id.lyFragmentMap)
+        val lyIntervalModeSpace = findViewById<LinearLayout>(R.id.lyIntervalModeSpace)
+        val lyIntervalMode = findViewById<LinearLayout>(R.id.lyIntervalMode)
+        val lyChallengesSpace = findViewById<LinearLayout>(R.id.lyChallengesSpace)
+        val lyChallenges = findViewById<LinearLayout>(R.id.lyChallenges)
+        val lySettingsVolumesSpace = findViewById<LinearLayout>(R.id.lySettingsVolumesSpace)
+        val lySettingsVolumes = findViewById<LinearLayout>(R.id.lySettingsVolumes)
+        var lySoftTrack = findViewById<LinearLayout>(R.id.lySoftTrack)
+        var lySoftVolume = findViewById<LinearLayout>(R.id.lySoftVolume)
+
+
         setHeightLinearLayout(lyMap, 0)
-        lyFragmentMap.translationY=-300f
-
-        val lyIntervalModeSpace= findViewById<LinearLayout>(R.id.lyIntervalModeSpace)
-        val lyIntervalMode= findViewById<LinearLayout>(R.id.lyIntervalMode)
-        val lyChallengesSpace= findViewById<LinearLayout>(R.id.lyChallengesSpace)
-        val lyChallenges= findViewById<LinearLayout>(R.id.lyChallenges)
-        val lySettingsVolumesSpace= findViewById<LinearLayout>(R.id.lySettingsVolumesSpace)
-        val lySettingsVolumes= findViewById<LinearLayout>(R.id.lySettingsVolumes)
-
-        var lySoftTrack= findViewById<LinearLayout>(R.id.lySoftTrack)
-
-        var lySoftVolume= findViewById<LinearLayout>(R.id.lySoftVolume)
-
-        setHeightLinearLayout(lyMap,0)
-        setHeightLinearLayout(lyIntervalModeSpace, 0)
-        setHeightLinearLayout(lyChallengesSpace, 0)
-        setHeightLinearLayout(lySettingsVolumesSpace, 0)
+        setHeightLinearLayout(lyIntervalModeSpace,0)
+        setHeightLinearLayout(lyChallengesSpace,0)
+        setHeightLinearLayout(lySettingsVolumesSpace,0)
         setHeightLinearLayout(lySoftTrack,0)
         setHeightLinearLayout(lySoftVolume,0)
 
-        lyIntervalMode.translationY= -300f
-        lyChallenges.translationY= -300f
-        lySettingsVolumes.translationY= -300f
-
+        lyFragmentMap.translationY = -300f
+        lyIntervalMode.translationY = -300f
+        lyChallenges.translationY = -300f
+        lySettingsVolumes.translationY = -300f
     }
 
     private fun initMetrics(){
-        csbCurrentDistance= findViewById(R.id.csbCurrentDistance)
-        csbChallengeDistance= findViewById(R.id.csbChallengeDistance)
-        csbRecordDistance= findViewById(R.id.csbRecordDistance)
+        csbCurrentDistance = findViewById(R.id.csbCurrentDistance)
+        csbChallengeDistance = findViewById(R.id.csbChallengeDistance)
+        csbRecordDistance = findViewById(R.id.csbRecordDistance)
 
-        csbCurrentAvgSpeed= findViewById(R.id.csbCurrentAvgSpeed)
-        csbRecordAvgSpeed= findViewById(R.id.csbRecordAvgSpeed)
+        csbCurrentAvgSpeed = findViewById(R.id.csbCurrentAvgSpeed)
+        csbRecordAvgSpeed = findViewById(R.id.csbRecordAvgSpeed)
 
+        csbCurrentSpeed = findViewById(R.id.csbCurrentSpeed)
+        csbCurrentMaxSpeed = findViewById(R.id.csbCurrentMaxSpeed)
+        csbRecordSpeed = findViewById(R.id.csbRecordSpeed)
 
-        csbCurrentSpeed= findViewById(R.id.csbCurrentSpeed)
-        csbCurrentMaxSpeed= findViewById(R.id.csbCurrentMaxSpeed)
-        csbRecordSpeed= findViewById(R.id.csbRecordSpeed)
+        csbCurrentDistance.progress = 0f
+        csbChallengeDistance.progress = 0f
 
-        csbCurrentDistance.progress=0f
-        csbChallengeDistance.progress=0f
-        csbCurrentAvgSpeed.progress=0f
-        csbCurrentSpeed.progress=0f
-        csbCurrentMaxSpeed.progress=0f
+        csbCurrentAvgSpeed.progress = 0f
 
-        tvDistanceRecord= findViewById(R.id.tvDistanceRecord)
-        tvAvgSpeedRecord=findViewById(R.id.tvAvgSpeedRecord)
-        tvMaxSpeedRecord= findViewById(R.id.tvMaxSpeedRecord)
+        csbCurrentSpeed.progress = 0f
+        csbCurrentMaxSpeed.progress = 0f
 
-        tvDistanceRecord.text=""
-        tvAvgSpeedRecord.text=""
-        tvMaxSpeedRecord.text=""
+        tvDistanceRecord = findViewById(R.id.tvDistanceRecord)
+        tvAvgSpeedRecord = findViewById(R.id.tvAvgSpeedRecord)
+        tvMaxSpeedRecord = findViewById(R.id.tvMaxSpeedRecord)
 
+        tvDistanceRecord.text = ""
+        tvAvgSpeedRecord.text = ""
+        tvMaxSpeedRecord.text = ""
     }
+
 //asginar valores a la variables para controloar los Switch
     private fun initSwitchs(){
-    swIntervalMode =findViewById<Switch>(R.id.swIntervalMode)
-    swChallenges= findViewById<Switch>(R.id.swChallenges)
-    swVolumes= findViewById(R.id.swVolumes)
-
-    }
+        swIntervalMode = findViewById(R.id.swIntervalMode)
+        swChallenges = findViewById(R.id.swChallenges)
+        swVolumes = findViewById(R.id.swVolumes)
+}
 
     private fun initIntervalMode(){
-        npDurationInterval=findViewById(R.id.npDurationInterval)
-        tvRunningTime=findViewById(R.id.tvRunningTime)
-        tvWalkingTime=findViewById(R.id.tvWalkingTime)
+        npDurationInterval = findViewById(R.id.npDurationInterval)
+        tvRunningTime = findViewById(R.id.tvRunningTime)
+        tvWalkingTime = findViewById(R.id.tvWalkingTime)
         csbRunWalk = findViewById(R.id.csbRunWalk)
-//permite selecionar valor de 1 a 60
-        npDurationInterval.minValue=1
-        npDurationInterval.maxValue=60
-        npDurationInterval.value=5//valor predeterminado 5
-        npDurationInterval.wrapSelectorWheel=true//comportamiento como un selector en rueda
-        npDurationInterval.setFormatter(NumberPicker.Formatter { i->String.format("%02d", i) })
+        //permite selecionar valor de 1 a 60
+        npDurationInterval.minValue = 1
+        npDurationInterval.maxValue = 60
+        npDurationInterval.value = 5
+        npDurationInterval.wrapSelectorWheel = true
+        npDurationInterval.setFormatter(NumberPicker.Formatter { i -> String.format("%02d", i) })
 
-//se configura un listener para el NumberPicker
-        npDurationInterval.setOnValueChangedListener{picker, oldVal, newVal->
-            csbRunWalk.max=(newVal*60).toFloat()
-            csbRunWalk.progress=csbRunWalk.max/2
+        npDurationInterval.setOnValueChangedListener { picker, oldVal, newVal ->
+            csbRunWalk.max = (newVal*60).toFloat()
+            csbRunWalk.progress = csbRunWalk.max/2
 
+            tvRunningTime.text = getFormattedStopWatch(((newVal*60/2)*1000).toLong()).subSequence(3,8)
+            tvWalkingTime.text = tvRunningTime.text
 
-            tvRunningTime.text=getFormattedStopWatch(((newVal*60/2)*1000).toLong()).subSequence(3,8)
-            tvWalkingTime.text=tvRunningTime.text
-
-            ROUND_INTERVAL= newVal*60
-            TIME_RUNNING= ROUND_INTERVAL/2
+            ROUND_INTERVAL = newVal * 60
+            TIME_RUNNING = ROUND_INTERVAL / 2
         }
 
         csbRunWalk.max = 300f
@@ -346,9 +387,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         else
                             csbRunWalk.progress = csbRunWalk.progress + set
                     }
+
+                    if (csbRunWalk.progress == 0f) manageEnableButtonsRun(false, false)
+                    else manageEnableButtonsRun(false, true)
                 }
-                if (csbRunWalk.progress==0f)manageEnableButtonsRun(false, false)
-                else manageEnableButtonsRun(false, true)
 
                 tvRunningTime.text = getFormattedStopWatch((csbRunWalk.progress.toInt() *1000).toLong()).subSequence(3,8)
                 tvWalkingTime.text = getFormattedStopWatch(((ROUND_INTERVAL- csbRunWalk.progress.toInt())*1000).toLong()).subSequence(3,8)
@@ -364,18 +406,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 //
     private fun initChallengeMode(){
-        //inicializacion numberpickers
         npChallengeDistance = findViewById(R.id.npChallengeDistance)
         npChallengeDurationHH = findViewById(R.id.npChallengeDurationHH)
         npChallengeDurationMM = findViewById(R.id.npChallengeDurationMM)
         npChallengeDurationSS = findViewById(R.id.npChallengeDurationSS)
-//configuracion distancia, valor de 1 a 300.
+
         npChallengeDistance.minValue = 1
         npChallengeDistance.maxValue = 300
-        npChallengeDistance.value = 10//este es el valor inicial
-        npChallengeDistance.wrapSelectorWheel = true//selector circular
+        npChallengeDistance.value = 10
+        npChallengeDistance.wrapSelectorWheel = true
 
-//listener para cambios en distancia
+
         npChallengeDistance.setOnValueChangedListener { picker, oldVal, newVal ->
             challengeDistance = newVal.toFloat()
             csbChallengeDistance.max = newVal.toFloat()
@@ -385,7 +426,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (csbChallengeDistance.max > csbRecordDistance.max)
                 csbCurrentDistance.max = csbChallengeDistance.max
         }
-//configuraion de tiempo
+
         npChallengeDurationHH.minValue = 0
         npChallengeDurationHH.maxValue = 23
         npChallengeDurationHH.value = 1
@@ -403,7 +444,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         npChallengeDurationSS.value = 0
         npChallengeDurationSS.wrapSelectorWheel = true
         npChallengeDurationSS.setFormatter(NumberPicker.Formatter { i -> String.format("%02d", i) })
-//listener para tiempo
+
         npChallengeDurationHH.setOnValueChangedListener { picker, oldVal, newVal ->
             getChallengeDuration(newVal, npChallengeDurationMM.value, npChallengeDurationSS.value)
         }
@@ -442,35 +483,34 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun updateTimesTrack(timesH: Boolean, timesS: Boolean){
-        val sbHardTrack = findViewById<SeekBar>(R.id.sbHardTrack)
-        val sbSoftTrack = findViewById<SeekBar>(R.id.sbSoftTrack)
 
         if (timesH){
             val tvHardPosition = findViewById<TextView>(R.id.tvHardPosition)
             val tvHardRemaining = findViewById<TextView>(R.id.tvHardRemaining)
-            tvHardPosition.text = getFormattedStopWatch(sbHardTrack.progress.toLong())
+            tvHardPosition.text = getFormattedStopWatch(mpHard!!.currentPosition.toLong())
             tvHardRemaining.text = "-" + getFormattedStopWatch( mpHard!!.duration.toLong() - sbHardTrack.progress.toLong())
         }
         if (timesS){
             val tvSoftPosition = findViewById<TextView>(R.id.tvSoftPosition)
             val tvSoftRemaining = findViewById<TextView>(R.id.tvSoftRemaining)
-            tvSoftPosition.text = getFormattedStopWatch(sbSoftTrack.progress.toLong())
+            tvSoftPosition.text = getFormattedStopWatch(mpSoft!!.currentPosition.toLong())
             tvSoftRemaining.text = "-" + getFormattedStopWatch( mpSoft!!.duration.toLong() - sbSoftTrack.progress.toLong())
         }
     }
     private fun setProgressTracks(){
-        val sbHardTrack = findViewById<SeekBar>(R.id.sbHardTrack)
-        val sbSoftTrack = findViewById<SeekBar>(R.id.sbSoftTrack)
         sbHardTrack.max = mpHard!!.duration
         sbSoftTrack.max = mpSoft!!.duration
+        sbHardTrack.isEnabled = false
+        sbSoftTrack.isEnabled = false
         updateTimesTrack(true, true)
-        //listener para poder avanzr en la barra de  desplazamiento de la cancion
+
         sbHardTrack.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener{
             override fun onProgressChanged(p0: SeekBar?, i: Int, fromUser: Boolean) {
                 if (fromUser){
                     mpHard?.pause()
                     mpHard?.seekTo(i)
                     mpHard?.start()
+                    if (!(timeInSeconds > 0L && hardTime && startButtonClicked)) mpHard?.pause()
                     updateTimesTrack(true, false)
                 }
             }
@@ -484,6 +524,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     mpSoft?.pause()
                     mpSoft?.seekTo(i)
                     mpSoft?.start()
+                    if (!(timeInSeconds > 0L && !hardTime && startButtonClicked)) mpSoft?.pause()
                     updateTimesTrack(false, true)
                 }
             }
@@ -493,18 +534,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     }
     private fun initMusic(){
-        //cada MPlayer con su recurso correspondiente
         mpNotify = MediaPlayer.create(this, R.raw.micmic)
         mpHard = MediaPlayer.create(this, R.raw.hard_music)
         mpSoft = MediaPlayer.create(this, R.raw.soft_music)
-        //cancion en bucle
+
         mpHard?.isLooping = true
         mpSoft?.isLooping = true
 
-        //asignamos seekbar
         sbHardVolume = findViewById(R.id.sbHardVolume)
         sbSoftVolume = findViewById(R.id.sbSoftVolume)
         sbNotifyVolume = findViewById(R.id.sbNotifyVolume)
+
+        sbHardTrack = findViewById(R.id.sbHardTrack)
+        sbSoftTrack = findViewById(R.id.sbSoftTrack)
+
         setVolumes()
         setProgressTracks()
     }
@@ -512,7 +555,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun notifySound(){
         mpNotify?.start()
     }
-    private fun hidePopUpRun() {
+    private fun hidePopUpRun(){
         var lyWindow = findViewById<LinearLayout>(R.id.lyWindow)
         lyWindow.translationX = 400f
         lyPopupRun = findViewById(R.id.lyPopupRun)
@@ -520,7 +563,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
     //funcion para inicializar objetos
     private fun initObjects(){
-
         initChrono()
         hideLayouts()
         initMetrics()
@@ -530,54 +572,152 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         initMusic()
         hidePopUpRun()
 
-        createMapFragment()
+        initMap()
+        initPreferences()
+        recoveryPreferences()
+
+
+    }
+    private fun initPreferences(){
+        sharedPreferences = getSharedPreferences("sharedPrefs", MODE_PRIVATE)
+        editor = sharedPreferences.edit()
     }
 
-    fun callSignPut(view:View){
-        signOut()
-    }
-    private fun signOut(){
-        useremail=""
-        if (providerSession=="Facebook") LoginManager.getInstance().logOut()
+    private fun recoveryPreferences(){
+        if (sharedPreferences.getString(key_userApp, "null") == useremail){
+            sportSelected = sharedPreferences.getString(key_selectedSport, "Running").toString()
 
-        FirebaseAuth.getInstance().signOut()
-        startActivity(Intent(this, LoginActivity::class.java))
-    }
-//capturamos que elemento del menu se ha pulsado
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-            when(item.itemId){
-                //le mando a parte de registros
-                R.id.nav_item_record-> callRecordActivity()
-                R.id.nav_item_signout->signOut()
+            swIntervalMode.isChecked = sharedPreferences.getBoolean(key_modeInterval, false)
+            if (swIntervalMode.isChecked){
+                npDurationInterval.value = sharedPreferences.getInt(key_intervalDuration, 5)
+                ROUND_INTERVAL = npDurationInterval.value*60
+                csbRunWalk.progress = sharedPreferences.getFloat(key_progressCircularSeekBar, 150.0f)
+                csbRunWalk.max = sharedPreferences.getFloat(key_maxCircularSeekBar, 300.0f)
+                tvRunningTime.text = sharedPreferences.getString(key_runningTime, "2:30")
+                tvWalkingTime.text = sharedPreferences.getString(key_walkingTime, "2:30")
+                swIntervalMode.callOnClick()
             }
+
+            swChallenges.isChecked = sharedPreferences.getBoolean(key_modeChallenge, false)
+            if (swChallenges.isChecked){
+                swChallenges.callOnClick()
+                if (sharedPreferences.getBoolean(key_modeChallengeDuration, false)){
+                    npChallengeDurationHH.value = sharedPreferences.getInt(key_challengeDurationHH, 1)
+                    npChallengeDurationMM.value = sharedPreferences.getInt(key_challengeDurationMM, 0)
+                    npChallengeDurationSS.value = sharedPreferences.getInt(key_challengeDurationSS, 0)
+                    getChallengeDuration(npChallengeDurationHH.value,npChallengeDurationMM.value,npChallengeDurationSS.value)
+                    challengeDistance = 0f
+
+                    showChallenge("duration")
+                }
+                if (sharedPreferences.getBoolean(key_modeChallengeDistance, false)){
+                    npChallengeDistance.value = sharedPreferences.getInt(key_challengeDistance, 10)
+                    challengeDistance = npChallengeDistance.value.toFloat()
+                    challengeDuration = 0
+
+                    showChallenge("distance")
+                }
+            }
+            cbNotify.isChecked = sharedPreferences.getBoolean(key_challengeNofify, true)
+            cbAutoFinish.isChecked = sharedPreferences.getBoolean(key_challengeAutofinish, false)
+
+            sbHardVolume.progress = sharedPreferences.getInt(key_hardVol, 100)
+            sbSoftVolume.progress = sharedPreferences.getInt(key_softVol, 100)
+            sbNotifyVolume.progress = sharedPreferences.getInt(key_notifyVol, 100)
+
+        }
+
+    }
+    private fun savePreferences(){
+        editor.clear()
+        editor.apply{
+
+            putString(key_userApp, useremail)
+            putString(key_provider, providerSession)
+
+            putString(key_selectedSport, sportSelected)
+
+            putBoolean(key_modeInterval, swIntervalMode.isChecked)
+            putInt(key_intervalDuration, npDurationInterval.value)
+            putFloat(key_progressCircularSeekBar, csbRunWalk.progress)
+            putFloat(key_maxCircularSeekBar, csbRunWalk.max)
+            putString(key_runningTime, tvRunningTime.text.toString())
+            putString(key_walkingTime, tvWalkingTime.text.toString())
+
+            putBoolean(key_modeChallenge, swChallenges.isChecked)
+            putBoolean(key_modeChallengeDuration, !(challengeDuration == 0))
+            putInt(key_challengeDurationHH, npChallengeDurationHH.value)
+            putInt(key_challengeDurationMM, npChallengeDurationMM.value)
+            putInt(key_challengeDurationSS, npChallengeDurationSS.value)
+            putBoolean(key_modeChallengeDistance, !(challengeDistance == 0f))
+            putInt(key_challengeDistance, npChallengeDistance.value)
+
+
+            putBoolean(key_challengeNofify, cbNotify.isChecked)
+            putBoolean(key_challengeAutofinish, cbAutoFinish.isChecked)
+
+            putInt(key_hardVol, sbHardVolume.progress)
+            putInt(key_softVol, sbSoftVolume.progress)
+            putInt(key_notifyVol, sbNotifyVolume.progress)
+
+        }.apply()
+    }
+    private fun alertClearPreferences(){
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.alertClearPreferencesTitle))
+            .setMessage(getString(R.string.alertClearPreferencesDescription))
+            .setPositiveButton(android.R.string.ok,
+                DialogInterface.OnClickListener{dialgo, which ->
+                    callClearPreferences()
+                })
+            .setNegativeButton(android.R.string.cancel,
+                DialogInterface.OnClickListener{dialgo, which ->
+
+                })
+            .setCancelable(true)
+            .show()
+    }
+    private fun callClearPreferences(){
+        editor.clear().apply()
+        Toast.makeText(this, "Tus ajustes han sido reestablecidos :)", Toast.LENGTH_SHORT).show()
+    }
+
+
+    //capturamos que elemento del menu se ha pulsado
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+
+        when (item.itemId){
+            R.id.nav_item_record -> callRecordActivity()
+            R.id.nav_item_clearpreferences-> alertClearPreferences()
+            R.id.nav_item_signout -> signOut()
+        }
+
         drawer.closeDrawer(GravityCompat.START)
 
         return true
     }
 
-    override fun onBackPressed() {
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START)
-        } else {
-            // Muestra un diálogo para confirmar el cierre de sesión
-            AlertDialog.Builder(this)
-                .setTitle("Cerrar sesión")
-                .setMessage("¿Estás seguro de que deseas cerrar sesión?")
-                .setPositiveButton("Sí") { _, _ ->
-                    signOut()
-                    super.onBackPressed() // Comportamiento predeterminado si se confirma
-                }
-                .setNegativeButton("No", null)
-                .show()
-        }
+    fun callSignOut(view:View){
+        signOut()
     }
+    private fun signOut(){
+        useremail = ""
+
+        if (providerSession == "Facebook")  LoginManager.getInstance().logOut()
+
+        FirebaseAuth.getInstance().signOut()
+        startActivity (Intent(this, LoginActivity::class.java))
+    }
+
+
+
     private fun callRecordActivity(){
-        val intent= Intent(this, RecordActivity::class.java)
+        val intent = Intent(this, RecordActivity::class.java)
         startActivity(intent)
     }
     //funcion para carrera con intervalos
 
-    fun inflateIntervalMode(v: View){
+    private fun inflateIntervalMode(){
         val lyIntervalMode = findViewById<LinearLayout>(R.id.lyIntervalMode)
         val lyIntervalModeSpace = findViewById<LinearLayout>(R.id.lyIntervalModeSpace)
         var lySoftTrack = findViewById<LinearLayout>(R.id.lySoftTrack)
@@ -598,8 +738,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 var lySettingsVolumesSpace = findViewById<LinearLayout>(R.id.lySettingsVolumesSpace)
                 setHeightLinearLayout(lySettingsVolumesSpace,600)
             }
-            var tvRunningTime= findViewById<TextView>(R.id.tvRunningTime)
-            TIME_RUNNING= getSecFromWatch(tvRunningTime.text.toString())
+
+            var tvRunningTime = findViewById<TextView>(R.id.tvRunningTime)
+            TIME_RUNNING = getSecFromWatch(tvRunningTime.text.toString())
+
         }
         else{
             swIntervalMode.setTextColor(ContextCompat.getColor(this, R.color.white))
@@ -614,6 +756,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 setHeightLinearLayout(lySettingsVolumesSpace,400)
             }
         }
+    }
+    fun callInflateIntervalMode(v: View){
+        inflateIntervalMode()
     }
 //funcion para abrir los retos
     fun inflateChallenges(v: View){
@@ -632,15 +777,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             challengeDistance = 0f
             challengeDuration = 0
         }
-}
-    fun showDuration(v:View){
-        if (timeInSeconds.toInt() == 0) showChallenge("duration")
-
     }
-
+    fun showDuration(v: View){
+        if (timeInSeconds == 0L) showChallenge("duration")
+    }
     fun showDistance(v:View){
-        if (timeInSeconds.toInt() == 0) showChallenge("distance")
-
+        if (timeInSeconds == 0L) showChallenge("distance")
     }
 
     private fun showChallenge(option: String){
@@ -679,18 +821,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun getChallengeDuration(hh:Int, mm:Int, ss:Int){
-        var hours: String=hh.toString()
+    private fun getChallengeDuration(hh: Int, mm: Int, ss: Int){
+        var hours: String = hh.toString()
         if (hh<10) hours = "0"+hours
-        var minutes: String= mm.toString()
-        if(mm<10) minutes = "0"+minutes
-        var seconds: String=ss.toString()
-        if(ss<10) seconds="0"+seconds
+        var minutes: String = mm.toString()
+        if (mm<10) minutes = "0"+minutes
+        var seconds: String = ss.toString()
+        if (ss<10) seconds = "0"+seconds
 
-        challengeDuration= getSecFromWatch("${hours}:${minutes}:${seconds}")
+        challengeDuration = getSecFromWatch("${hours}:${minutes}:${seconds}")
     }
-
-
     fun inflateVolumes(v: View){
 
         val lySettingsVolumesSpace = findViewById<LinearLayout>(R.id.lySettingsVolumesSpace)
@@ -712,6 +852,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    private fun initMap(){
+
+        listPoints = arrayListOf()
+        (listPoints as ArrayList<LatLng>).clear()
+
+        createMapFragment()
+
+        var lyOpenerButton = findViewById<LinearLayout>(R.id.lyOpenerButton)
+        if (allPermissionsGrantedGPS()) lyOpenerButton.isEnabled = true
+        else  lyOpenerButton.isEnabled = false
+
+    }
+
+    override fun onMyLocationButtonClick(): Boolean {
+        return false
+    }
+    override fun onMyLocationClick(p0: Location) {
+
+    }
+
     private fun createMapFragment(){
         val mapFragment = supportFragmentManager.findFragmentById(R.id.fragmentMap) as SupportMapFragment?
         mapFragment?.getMapAsync(this)
@@ -731,12 +891,72 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         centerMap (init_lt ,init_ln)
 
     }
+
+
+    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<out String>,grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode){
+            LOCATION_PERMISSION_REQ_CODE -> {
+                var lyOpenerButton = findViewById<LinearLayout>(R.id.lyOpenerButton)
+
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    lyOpenerButton.isEnabled = true
+                else{
+                    var lyMap = findViewById<LinearLayout>(R.id.lyMap)
+                    if (lyMap.height > 0){
+                        setHeightLinearLayout(lyMap, 0)
+
+                        var lyFragmentMap = findViewById<LinearLayout>(R.id.lyFragmentMap)
+                        lyFragmentMap.translationY= -300f
+
+                        var ivOpenClose = findViewById<ImageView>(R.id.ivOpenClose)
+                        ivOpenClose.setRotation(0f)
+                    }
+
+                    lyOpenerButton.isEnabled = false
+
+                }
+            }
+        }
+    }
+
+    private fun enableMyLocation(){
+        if (!::map.isInitialized) return
+        if (ActivityCompat.checkSelfPermission(  this,Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+
+            && ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLocation()
+            return
+        }
+        else map.isMyLocationEnabled = true
+
+    }
+
     private fun centerMap(lt: Double, ln: Double){
         val posMap = LatLng(lt, ln)
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(posMap, 16f), 1000, null)
 
     }
 
+    fun changeTypeMap(v: View){
+        var ivTypeMap = findViewById<ImageView>(R.id.ivTypeMap)
+        if (map.mapType == GoogleMap.MAP_TYPE_HYBRID){
+            map.mapType = GoogleMap.MAP_TYPE_NORMAL
+            ivTypeMap.setImageResource(R.drawable.map_type_hybrid)
+        }
+        else{
+            map.mapType = GoogleMap.MAP_TYPE_HYBRID
+            ivTypeMap.setImageResource(R.drawable.map_type_normal)
+        }
+    }
+    fun callCenterMap(v: View){
+        mapCentered = true
+        if (latitude == 0.0) centerMap(init_lt, init_ln)
+        else centerMap(latitude, longitude)
+    }
     fun callShowHideMap(v: View){
         if (allPermissionsGrantedGPS()){
             var lyMap = findViewById<LinearLayout>(R.id.lyMap)
@@ -772,7 +992,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun allPermissionsGrantedGPS() = REQUIRED_PERMISSIONS_GPS.all {
         ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
-
     private fun isLocationEnabled(): Boolean{
         var locationManager: LocationManager
                 = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -784,6 +1003,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
         startActivity(intent)
     }
+
     private fun checkPermission(): Boolean{
         return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED &&
@@ -793,7 +1013,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private fun manageLocation(){
         if (checkPermission()){
-
 
             if (isLocationEnabled()){
                 if (ActivityCompat.checkSelfPermission(this,
@@ -813,6 +1032,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
         else requestPermissionLocation()
     }
+
     @SuppressLint("MissingPermission")
     private fun requestNewLocationData(){
         var mLocationRequest = com.google.android.gms.location.LocationRequest()
@@ -836,7 +1056,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (timeInSeconds > 0L) registerNewLocation(mLastLocation)
         }
     }
-
     private fun registerNewLocation(location: Location){
         var new_latitude: Double = location.latitude
         var new_longitude: Double = location.longitude
@@ -845,14 +1064,44 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (timeInSeconds >= INTERVAL_LOCATION){
                 var distanceInterval = calculateDistance(new_latitude, new_longitude)
 
-              updateSpeeds(distanceInterval)
-                refreshInterfaceData()
+                if ( distanceInterval <= LIMIT_DISTANCE_ACCEPTED){
+                    updateSpeeds(distanceInterval)
+                    refreshInterfaceData()
+
+                    var newPos = LatLng (new_latitude, new_longitude)
+                    (listPoints as ArrayList<LatLng>).add(newPos)
+                    createPolylines(listPoints)
+
+                }
+
             }
         }
         latitude = new_latitude
         longitude = new_longitude
-    }
 
+        if (mapCentered == true) centerMap(latitude, longitude)
+
+        if (minLatitude == null){
+            minLatitude = latitude
+            maxLatitude = latitude
+            minLongitude = longitude
+            maxLongitude = longitude
+        }
+        if (latitude < minLatitude!!) minLatitude = latitude
+        if (latitude > maxLatitude!!) maxLatitude = latitude
+        if (longitude < minLongitude!!) minLongitude = longitude
+        if (longitude > maxLongitude!!) maxLongitude = longitude
+
+        if (location.hasAltitude()){
+            if (maxAltitude == null){
+                maxAltitude = location.altitude
+                minAltitude = location.altitude
+            }
+            if (location.latitude > maxAltitude!!) maxAltitude = location.altitude
+            if (location.latitude < minAltitude!!) minAltitude = location.altitude
+        }
+
+    }
     private fun calculateDistance(n_lt: Double, n_lg: Double): Double{
         val radioTierra = 6371.0 //en kilómetros
 
@@ -868,12 +1117,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val va2 = 2 * Math.atan2(Math.sqrt(va1), Math.sqrt(1 - va1))
         var n_distance =  radioTierra * va2
 
-        //if (n_distance < LIMIT_DISTANCE_ACCEPTED) distance += n_distance
+        if (n_distance < LIMIT_DISTANCE_ACCEPTED) distance += n_distance
 
-        distance += n_distance
         return n_distance
     }
-
     private fun updateSpeeds(d: Double) {
         //la distancia se calcula en km, asi que la pasamos a metros para el calculo de velocidadr
         //convertirmos m/s a km/h multiplicando por 3.6
@@ -882,7 +1129,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         avgSpeed = ((distance * 1000) / timeInSeconds) * 3.6
     }
     private fun refreshInterfaceData(){
-        //asginar a los seekbar los datos que tenemos
         var tvCurrentDistance = findViewById<TextView>(R.id.tvCurrentDistance)
         var tvCurrentAvgSpeed = findViewById<TextView>(R.id.tvCurrentAvgSpeed)
         var tvCurrentSpeed = findViewById<TextView>(R.id.tvCurrentSpeed)
@@ -905,10 +1151,64 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    private fun createPolylines(listPosition: Iterable<LatLng>){
+        val polylineOptions = PolylineOptions()
+            .width(25f)
+            .color(ContextCompat.getColor(this, R.color.salmon_dark))
+            .addAll(listPosition)
+
+        val polyline = map.addPolyline(polylineOptions)
+        polyline.startCap = RoundCap()
+
+    }
+
+    fun selectBike(v: View){
+        if (timeInSeconds.toInt() == 0) selectSport("Bike")
+    }
+    fun selectRollerSkate(v: View){
+        if (timeInSeconds.toInt() == 0) selectSport("RollerSkate")
+    }
+    fun selectRunning(v: View){
+        if (timeInSeconds.toInt() == 0) selectSport("Running")
+    }
+    private fun selectSport(sport: String){
+
+        sportSelected = sport
+
+        var lySportBike = findViewById<LinearLayout>(R.id.lySportBike)
+        var lySportRollerSkate = findViewById<LinearLayout>(R.id.lySportRollerSkate)
+        var lySportRunning = findViewById<LinearLayout>(R.id.lySportRunning)
+
+        when (sport){
+            "Bike"->{
+                LIMIT_DISTANCE_ACCEPTED = LIMIT_DISTANCE_ACCEPTED_BIKE
+
+                lySportBike.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.orange))
+                lySportRollerSkate.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRunning.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+            }
+            "RollerSkate"->{
+                LIMIT_DISTANCE_ACCEPTED = LIMIT_DISTANCE_ACCEPTED_ROLLERSKATE
+
+                lySportBike.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRollerSkate.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.orange))
+                lySportRunning.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+            }
+            "Running"->{
+                LIMIT_DISTANCE_ACCEPTED = LIMIT_DISTANCE_ACCEPTED_RUNNING
+
+                lySportBike.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRollerSkate.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.gray_medium))
+                lySportRunning.setBackgroundColor(ContextCompat.getColor(mainContext, R.color.orange))
+            }
+
+        }
+    }
+
+
     fun startOrStopButtonClicked (v: View){
         manageStartStop()
     }
-
     private fun manageStartStop(){
         if (timeInSeconds == 0L && isLocationEnabled() == false){
             AlertDialog.Builder(this)
@@ -933,7 +1233,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (timeInSeconds.toInt() == 0){
 
             fbCamara.isVisible = true
-//una vez iniciada la carrera no se puede modificar algunos elementos.
+
             swIntervalMode.isClickable = false
             npDurationInterval.isEnabled = false
             csbRunWalk.isEnabled = false
@@ -946,12 +1246,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             tvChrono.setTextColor(ContextCompat.getColor(this, R.color.chrono_running))
 
+
+            sbHardTrack.isEnabled = true
+            sbSoftTrack.isEnabled = true
+
             mpHard?.start()
 
             if (activatedGPS){
-                flagSavedLocation= false
+                flagSavedLocation = false
                 manageLocation()
-                flagSavedLocation=true
+                flagSavedLocation = true
                 manageLocation()
             }
         }
@@ -960,10 +1264,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             startTime()
             manageEnableButtonsRun(false, true)
 
+            if (hardTime) mpHard?.start()
+            else mpSoft?.start()
+            /*
             if (tvChrono.getCurrentTextColor() == ContextCompat.getColor(this, R.color.chrono_running))
                 mpHard?.start()
             if (tvChrono.getCurrentTextColor() == ContextCompat.getColor(this, R.color.chrono_walking))
                 mpSoft?.start()
+                */
 
         }
         else{
@@ -971,44 +1279,43 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             stopTime()
             manageEnableButtonsRun(true, true)
 
+            if (hardTime) mpHard?.pause()
+            else mpSoft?.pause()
+            /*
             if (tvChrono.getCurrentTextColor() == ContextCompat.getColor(this, R.color.chrono_running))
                 mpHard?.pause()
             if (tvChrono.getCurrentTextColor()  == ContextCompat.getColor(this, R.color.chrono_walking))
                 mpSoft?.pause()
+                */
+
         }
     }
-    //funcion para administrar los botones de la carrera (boton de reset, boton start y la frase)
     private fun manageEnableButtonsRun(e_reset: Boolean, e_run: Boolean){
         val tvReset = findViewById<TextView>(R.id.tvReset)
         val btStart = findViewById<LinearLayout>(R.id.btStart)
         val btStartLabel = findViewById<TextView>(R.id.btStartLabel)
         tvReset.setEnabled(e_reset)
         btStart.setEnabled(e_run)
-//si reset esta habilitado, el fondo verde y elevo
+
         if (e_reset){
             tvReset.setBackgroundColor(ContextCompat.getColor(this, R.color.green))
             animateViewofFloat(tvReset, "translationY", 0f, 500)
         }
-        //no esta habilitado, fondo gris y lo ocultamos
         else{
             tvReset.setBackgroundColor(ContextCompat.getColor(this, R.color.gray))
             animateViewofFloat(tvReset, "translationY", 150f, 500)
         }
 
-
         if (e_run){
-            //boton activo cambia a rojo y ponemos la frase de stop (quieto parado)
             if (startButtonClicked){
                 btStart.background = getDrawable(R.drawable.circle_background_topause)
                 btStartLabel.setText(R.string.stop)
             }
-            //cuando este pausado cambia a rojo
             else{
                 btStart.background = getDrawable(R.drawable.circle_background_toplay)
                 btStartLabel.setText(R.string.start)
             }
         }
-        //sino esta activo es gris
         else btStart.background = getDrawable(R.drawable.circle_background_todisable)
 
 
@@ -1033,7 +1340,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
 
                 updateTimesTrack(true, true)
-                if(activatedGPS && timeInSeconds.toInt()% INTERVAL_LOCATION==0) manageLocation()
+
+                if (activatedGPS && timeInSeconds.toInt() % INTERVAL_LOCATION == 0) manageLocation()
 
                 if (swIntervalMode.isChecked){
                     checkStopRun(timeInSeconds)
@@ -1047,29 +1355,42 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
     }
-
     private fun updateStopWatchView(){
         tvChrono.text = getFormattedStopWatch(timeInSeconds * 1000)
     }
-//boton reset
+
     private fun resetClicked(){
+        savePreferences()
+
         resetVariablesRun()
         resetTimeView()
         resetInterface()
     }
-
     private fun resetVariablesRun(){
         timeInSeconds = 0
         rounds = 1
+        hardTime = true
+
+        distance = 0.0
+        maxSpeed = 0.0
+        avgSpeed = 0.0
+
+        minAltitude = null
+        maxAltitude = null
+        minLatitude = null
+        maxLatitude = null
+        minLongitude = null
+        maxLongitude = null
+
+        (listPoints as ArrayList<LatLng>).clear()
 
         challengeDistance = 0f
         challengeDuration = 0
 
-        activatedGPS=true
-        flagSavedLocation=false
+        activatedGPS = true
+        flagSavedLocation = false
 
         initStopWatch()
-
     }
     private fun resetTimeView(){
         manageEnableButtonsRun(false, true)
@@ -1079,7 +1400,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         tvChrono.setTextColor(ContextCompat.getColor(this, R.color.white))
     }
     private fun resetInterface(){
-//la interfaz vuelve al estado incial
+
         fbCamara.isVisible = false
 
         val tvCurrentDistance: TextView = findViewById(R.id.tvCurrentDistance)
@@ -1110,7 +1431,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         swIntervalMode.isClickable = true
         npDurationInterval.isEnabled = true
         csbRunWalk.isEnabled = true
-        //inflateIntervalMode()
+        inflateIntervalMode()
 
         swChallenges.isClickable = true
         npChallengeDistance.isEnabled = true
@@ -1121,7 +1442,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         sbHardTrack.isEnabled = false
         sbSoftTrack.isEnabled = false
-
 
     }
 
@@ -1143,7 +1463,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         }
     }
-
     private fun checkStopRun(Secs: Long){
         var secAux : Long = Secs
         while (secAux.toInt() > ROUND_INTERVAL) secAux -= ROUND_INTERVAL
@@ -1158,6 +1477,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             mpHard?.pause()
             notifySound()
             mpSoft?.start()
+
+            hardTime = false
         }
         else updateProgressBarRound(Secs)
     }
@@ -1176,11 +1497,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             notifySound()
             mpHard?.start()
 
+            hardTime = true
         }
         else updateProgressBarRound(Secs)
     }
-
-
 
 
 }
