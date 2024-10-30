@@ -10,6 +10,19 @@
     tools:context=".MainActivity"
     tools:openDrawer="start">
 
+    <include
+        layout="@layout/app_bar_main"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        app:menu="@menu/activity_main_drawer" />
+
+
     <RelativeLayout
         android:id="@+id/rlMain"
         android:layout_width="match_parent"
@@ -459,7 +472,7 @@
                                 android:id="@+id/fragmentMap"
                                 android:name="com.google.android.gms.maps.SupportMapFragment"
                                 android:layout_width="match_parent"
-                                android:layout_height="match_parent"
+                                android:layout_height="420dp"
                                 tools:context=".MainActivity"
                                 map:mapType="normal"
                                 map:uiCompass="false"
@@ -730,7 +743,7 @@
                             android:layout_marginRight="30dp"
                             android:layout_marginTop="40dp"
                             android:background="@color/gray_dark"
-                            android:onClick="inflateIntervalMode"
+                            android:onClick="callInflateIntervalMode"
                             tools:ignore="UseSwitchCompatOrMaterialXml" />
                         <LinearLayout
                             android:id="@+id/lyIntervalModeSpace"
@@ -1355,7 +1368,7 @@
 
     <LinearLayout
         android:id="@+id/lyPopupRun"
-        android:visibility="invisible"
+        android:visibility="visible"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -2117,7 +2130,7 @@
                     android:layout_height="wrap_content"
                     android:layout_margin="10dp"
                     android:backgroundTint="@color/white"
-                    android:src="@drawable/ic_menu_camara"
+                    android:src="@android:drawable/ic_menu_camera"
                     app:maxImageSize="40dp"
                     android:onClick="takePicture"/>
                 <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -2135,17 +2148,5 @@
 
 
 
-
-    <include
-        layout="@layout/app_bar_main"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
-
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        app:menu="@menu/activity_main_drawer" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
